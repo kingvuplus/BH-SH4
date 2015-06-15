@@ -58,6 +58,95 @@ config.misc.deliteeinfo = ConfigBoolean(default = False)
 config.misc.delitepanicb = ConfigBoolean(default = False)
 config.misc.deliteepgbuttons = ConfigBoolean(default = True)
 
+def setResumePoint(session):
+	global resumePointCache, resumePointCacheLast
+	service = session.nav.getCurrentService()
+	ref = session.nav.getCurrentlyPlayingServiceOrGroup()
+	if (service is not None) and (ref is not None): # and (ref.type != 1):
+		# ref type 1 has its own memory...
+		seek = service.seek()
+		if seek:
+			pos = seek.getPlayPosition()
+			if not pos[0]:
+				key = ref.toString()
+				lru = int(time())
+				l = seek.getLength()
+				if l:
+					l = l[1]
+				else:
+					l = None
+				resumePointCache[key] = [lru, pos[1], l]
+				for k, v in resumePointCache.items():
+					if v[0] < lru:
+						candidate = k
+						filepath = os.path.realpath(candidate.split(':')[-1])
+						mountpoint = findMountPoint(filepath)
+						if os.path.ismount(mountpoint) and not os.path.exists(filepath):
+							del resumePointCache[candidate]
+				saveResumePoints()
+
+def delResumePoint(ref):
+	global resumePointCache, resumePointCacheLast
+	try:
+		del resumePointCache[ref.toString()]
+	except KeyError:
+		pass
+	saveResumePoints()
+
+def getResumePoint(session):
+	global resumePointCache
+	ref = session.nav.getCurrentlyPlayingServiceOrGroup()
+	if (ref is not None) and (ref.type != 1):
+		try:
+			entry = resumePointCache[ref.toString()]
+			entry[0] = int(time()) # update LRU timestamp
+			return entry[1]
+		except KeyError:
+			return None
+
+def saveResumePoints():
+	global resumePointCache, resumePointCacheLast
+	try:
+		f = open('/etc/enigma2/resumepoints.pkl', 'wb')
+		cPickle.dump(resumePointCache, f, cPickle.HIGHEST_PROTOCOL)
+		f.close()
+	except Exception, ex:
+		print "[InfoBar] Failed to write resumepoints:", ex
+	resumePointCacheLast = int(time())
+
+def loadResumePoints():
+	try:
+		file = open('/etc/enigma2/resumepoints.pkl', 'rb')
+		PickleFile = cPickle.load(file)
+		file.close()
+		return PickleFile
+	except Exception, ex:
+		print "[InfoBar] Failed to load resumepoints:", ex
+		return {}
+
+def updateresumePointCache():
+	global resumePointCache
+	resumePointCache = loadResumePoints()
+
+def ToggleVideo():
+	mode = open("/proc/stb/video/policy").read()[:-1]
+	print mode
+	if mode == "letterbox":
+		f = open("/proc/stb/video/policy", "w")
+		f.write("panscan")
+		f.close()
+	elif mode == "panscan":
+		f = open("/proc/stb/video/policy", "w")
+		f.write("letterbox")
+		f.close()
+	else:
+		# if current policy is not panscan or letterbox, set to panscan
+		f = open("/proc/stb/video/policy", "w")
+		f.write("panscan")
+		f.close()
+resumePointCache = loadResumePoints()
+resumePointCacheLast = int(time())
+
 class InfoBarDish:
 	def __init__(self):
 		self.dishDialog = self.session.instantiateDialog(Dish)
