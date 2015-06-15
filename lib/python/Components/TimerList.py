@@ -95,7 +95,7 @@ class TimerList(HTMLComponent, GUIComponent, object):
 		self.rowSplit = 25
 		self.iconMargin = 4
 		self.satPosLeft = 160
-		self.iconWait = LoadPixmap(resolveFilename(SCOPE_CURRENT_SKIN, "skin_default/icons/timer_wait.png"))
+		self.iconWait = LoadPixmap(resolveFilename(SCOPE_CURRENT_SKIN, "skin_default/icons/timer.png"))
 		#currently intended that all icons have the same size
 		self.iconWidth = self.iconWait.size().width()
 		self.iconHeight = self.iconWait.size().height()
