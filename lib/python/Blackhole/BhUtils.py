@@ -135,11 +135,11 @@ def BhU_get_Version():
 
 def BhU_check_proc_version():
     model = ''
-    if fileExists('/proc/stb/vumodel'):
-        f = open('/proc/stb/vumodel', 'r')
+    if fileExists('/proc/stb/info/boxtype'):
+        f = open('/proc/stb/boxtype', 'r')
         model = f.readline().strip()
         f.close()
-    return ver
+    return model
 
 
 def BhU_checkSkinVersion(skinfile):
